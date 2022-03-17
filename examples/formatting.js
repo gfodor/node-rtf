@@ -47,6 +47,7 @@ myDoc.startList()
 myDoc.writeText("Bullet One", list);
 myDoc.writeText("Bullet Two", list);
 myDoc.writeText("Bullet Three", list);
+myDoc.writeLink("Go To Google", "https://www.google.com", custom_blue);
 
 myDoc.createDocument(
     function(err, output){
