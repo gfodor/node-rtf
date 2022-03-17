@@ -10,7 +10,8 @@ var myDoc = new rtf(),
     maroon_super = new Format(),
     gray_sub = new Format(),
     lime_indent = new Format(),
-    custom_blue = new Format();
+    custom_blue = new Format(),
+    list = new Format();
 
 red_underline.color = Colors.RED;
 red_underline.underline = true;
@@ -40,6 +41,12 @@ myDoc.writeText("Left indented Lime", lime_indent);
 myDoc.addLine();
 custom_blue.color = new RGB(3, 80, 150);
 myDoc.writeText("Custom blue color", custom_blue);
+custom_blue.makeParagraph = true
+list.bulleted = true
+myDoc.startList()
+myDoc.writeText("Bullet One", list);
+myDoc.writeText("Bullet Two", list);
+myDoc.writeText("Bullet Three", list);
 
 myDoc.createDocument(
     function(err, output){
