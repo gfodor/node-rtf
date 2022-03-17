@@ -1,21 +1,27 @@
-{ 
-  "name" : "rtf",
-  "version" : "0.0.4",
-  "description" : "Assists with creating rich text documents.",
-  "main" : "./lib/rtf.js",
-  "author" : "Jonathan Rowny",
-  "repository" : {
-    "type" : "git",
-    "url" : "https://github.com/jrowny/node-rtf.git"
+{
+  "name": "rtf",
+  "version": "0.0.4",
+  "description": "Assists with creating rich text documents.",
+  "main": "./lib/rtf.js",
+  "author": "Jonathan Rowny",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/jrowny/node-rtf.git"
+  },
+  "scripts": {
+    "build": "esbuild ./lib/rtf.js --bundle --outfile=build/dist.js"
   },
   "keywords": [
     "rtf",
     "rich text",
     "documents"
   ],
-  "license" : "MIT",
+  "license": "MIT",
   "dependencies": {
-    "async" : "~0",
-    "imageinfo" : "~1"
+    "async": "~0",
+    "imageinfo": "~1"
+  },
+  "devdependencies": {
+    "esbuild": "^0.14.27"
   }
- }
+}
