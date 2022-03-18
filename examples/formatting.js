@@ -1,17 +1,17 @@
-var rtf = require('../lib/rtf'),
-    Format = require('../lib/format'),
-    Colors = require('../lib/colors'),
-    RGB = require('../lib/rgb'),
-    fs  = require('fs');
+var rtf = require("../lib/rtf"),
+  Format = require("../lib/format"),
+  Colors = require("../lib/colors"),
+  RGB = require("../lib/rgb"),
+  fs = require("fs");
 var myDoc = new rtf(),
-    red_underline = new Format(),
-    blue_strike = new Format(),
-    green_bold = new Format(),
-    maroon_super = new Format(),
-    gray_sub = new Format(),
-    lime_indent = new Format(),
-    custom_blue = new Format(),
-    list = new Format();
+  red_underline = new Format(),
+  blue_strike = new Format(),
+  green_bold = new Format(),
+  maroon_super = new Format(),
+  gray_sub = new Format(),
+  lime_indent = new Format(),
+  custom_blue = new Format(),
+  list_item = new Format();
 
 red_underline.color = Colors.RED;
 red_underline.underline = true;
@@ -41,19 +41,17 @@ myDoc.writeText("Left indented Lime", lime_indent);
 myDoc.addLine();
 custom_blue.color = new RGB(3, 80, 150);
 myDoc.writeText("Custom blue color", custom_blue);
-custom_blue.makeParagraph = true
-list.bulleted = true
-myDoc.startList()
-myDoc.writeText("Bullet One", list);
-myDoc.writeText("Bullet Two", list);
-myDoc.writeText("Bullet Three", list);
+custom_blue.makeParagraph = true;
+myDoc.startList();
+myDoc.writeText("Bullet One", list_item);
+myDoc.writeText("Bullet Two", list_item);
+myDoc.writeText("Bullet Three", list_item);
 myDoc.writeLink("Go To Google", "https://www.google.com", custom_blue);
+myDoc.endList();
 
-myDoc.createDocument(
-    function(err, output){
-        console.log(output);
-        fs.writeFile('formatting.rtf', output, function (err) {
-          if (err) return console.log(err);
-        });
-    }
-);
+myDoc.createDocument(function (err, output) {
+  console.log(output);
+  fs.writeFile("formatting.rtf", output, function (err) {
+    if (err) return console.log(err);
+  });
+});

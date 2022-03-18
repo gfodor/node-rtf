@@ -39,10 +39,10 @@ var require_rtf_utils = __commonJS({
       return str;
     };
     function getRTFSafeText(text) {
-      if (typeof text === "object" && Object.hasOwn(text, "safe") && !text.safe) {
+      if (typeof text === "object" && typeof text.safe !== "undefined" && !text.safe) {
         return text.text;
       }
-      return text.replaceAll("\\", "\\\\").replaceAll("{", "\\{").replaceAll("}", "\\}").replaceAll("~", "\\~").replaceAll("-", "\\-").replaceAll("_", "\\_").replaceAll("\n\r", " \\line ").replaceAll("\n", " \\line ").replaceAll("\r", " \\line ");
+      return text.replaceAll("\\", "\\\\").replaceAll("{", "\\{").replaceAll("}", "\\}").replaceAll("~", "\\~").replaceAll("_", "\\_").replaceAll("\n\r", " \\line ").replaceAll("\n", " \\line ").replaceAll("\r", " \\line ");
     }
     function createColorTable(colorTable) {
       var table = "", c;
@@ -98,7 +98,6 @@ var require_format = __commonJS({
       this.strike = false;
       this.superScript = false;
       this.subScript = false;
-      this.bulleted = false;
       this.makeParagraph = false;
       this.align = "";
       this.leftIndent = 0;
@@ -158,8 +157,6 @@ var require_format = __commonJS({
         rtf += "\\li" + (this.leftIndent * 20).toString();
       if (this.rightIndent > 0)
         rtf += "\\ri" + this.rightIndent.toString();
-      if (this.bulleted)
-        rtf += "{\\listtext	\\uc0\\u8226 	}";
       var content = "";
       if (safeText === void 0 || safeText) {
         content += Utils.getRTFSafeText(text);
@@ -178,9 +175,9 @@ var require_format = __commonJS({
         content = wrap(content, "\\sub");
       if (this.superScript)
         content = wrap(content, "\\super");
+      if (!this.bold && !this.italic && !this.underline && !this.strike && !this.subScript && !this.superScript)
+        rtf += " ";
       rtf += content;
-      if (this.bulleted)
-        rtf += "\\\n";
       if (this.makeParagraph)
         rtf += "\\par";
       rtf += "}";
@@ -1286,12 +1283,33 @@ var require_group = __commonJS({
           });
         }
       });
-      return async.parallel(tasks, function(err, results) {
+      return async.parallel(tasks, (err, results) => {
         results.forEach(function(result) {
           rtf += result;
         });
         rtf = this.format.formatText(rtf, colorTable, fontTable, false);
         return callback(null, rtf);
+      });
+    };
+  }
+});
+
+// lib/elements/list.js
+var require_list = __commonJS({
+  "lib/elements/list.js"(exports, module) {
+    var Element = require_element();
+    var Format = require_format();
+    var async = require_async();
+    var ListElement;
+    module.exports = ListElement = function(items) {
+      Element.apply(this, [new Format()]);
+      this.items = items;
+    };
+    ListElement.subclass(Element);
+    ListElement.prototype.getRTFCode = function(colorTable, fontTable, callback) {
+      const itemTasks = this.items.map((item) => (cb) => item.getRTFCode(colorTable, fontTable, cb));
+      return async.parallel(itemTasks, (err, results) => {
+        callback(null, `{{\\*\\pn\\pnlvlblt\\pnf1\\pnindent0{\\pntxtb\\'B7}}\\fi-360\\li720\\sa200\\sl276\\slmult1\\lang22\\f0\\fs22{\\pntext\\tab}${results.join("\\par")}\\par}`);
       });
     };
   }
@@ -1307,6 +1325,7 @@ var require_rtf = __commonJS({
     var TextElement = require_text();
     var LinkElement = require_link();
     var GroupElement = require_group();
+    var ListElement = require_list();
     var async = require_async();
     var RTF;
     module.exports = RTF = function() {
@@ -1322,10 +1341,13 @@ var require_rtf = __commonJS({
       this.elements = [];
       this.colorTable = [];
       this.fontTable = [];
+      this.pendingListItems = null;
     };
     RTF.prototype.writeText = function(text, format, groupName) {
       const element = new TextElement(text, format);
-      if (groupName !== void 0 && this._groupIndex(groupName) >= 0) {
+      if (this.pendingListItems !== null) {
+        this.pendingListItems.push(element);
+      } else if (groupName !== void 0 && this._groupIndex(groupName) >= 0) {
         this.elements[this._groupIndex(groupName)].push(element);
       } else {
         this.elements.push(element);
@@ -1333,7 +1355,9 @@ var require_rtf = __commonJS({
     };
     RTF.prototype.writeLink = function(text, url, format, groupName) {
       const element = new LinkElement(text, url, format);
-      if (groupName !== void 0 && this._groupIndex(groupName) >= 0) {
+      if (this.pendingListItems !== null) {
+        this.pendingListItems.push(element);
+      } else if (groupName !== void 0 && this._groupIndex(groupName) >= 0) {
         this.elements[this._groupIndex(groupName)].push(element);
       } else {
         this.elements.push(element);
@@ -1364,8 +1388,14 @@ var require_rtf = __commonJS({
     RTF.prototype.addLine = function(groupName) {
       this.addCommand("\\line", groupName);
     };
-    RTF.prototype.startList = function(groupName) {
-      this.addCommand("\\pard\\ls1\\ilvl0", groupName);
+    RTF.prototype.startList = function() {
+      this.pendingListItems = [];
+    };
+    RTF.prototype.endList = function() {
+      if (this.pendingListItems !== null) {
+        this.elements.push(new ListElement(this.pendingListItems));
+      }
+      this.pendingListItems = null;
     };
     RTF.prototype.addTab = function(groupName) {
       this.addCommand("\\tab", groupName);
@@ -1405,7 +1435,7 @@ var require_rtf = __commonJS({
           });
         }
       });
-      return async.parallel(tasks, function(err, results) {
+      return async.parallel(tasks, (err, results) => {
         var elementOutput = "";
         results.forEach(function(result) {
           elementOutput += result;
@@ -1424,7 +1454,37 @@ var require_rtf = __commonJS({
     };
   }
 });
-export default require_rtf();
+
+// lib/colors.js
+var require_colors = __commonJS({
+  "lib/colors.js"(exports, module) {
+    var RGB = require_rgb();
+    module.exports = {
+      BLACK: new RGB(0, 0, 0),
+      WHITE: new RGB(255, 255, 255),
+      RED: new RGB(255, 0, 0),
+      BLUE: new RGB(0, 0, 255),
+      LIME: new RGB(191, 255, 0),
+      YELLOW: new RGB(255, 255, 0),
+      MAROON: new RGB(128, 0, 0),
+      GREEN: new RGB(0, 255, 0),
+      GRAY: new RGB(80, 80, 80),
+      ORANGE: new RGB(255, 127, 0)
+    };
+  }
+});
+
+// lib/index.js
+var require_lib = __commonJS({
+  "lib/index.js"(exports, module) {
+    var RTF = require_rtf();
+    var Colors = require_colors();
+    var Format = require_format();
+    var RGB = require_rgb();
+    module.exports = { Doc: RTF, RGB, Colors, Format };
+  }
+});
+export default require_lib();
 /*!
  * async
  * https://github.com/caolan/async
